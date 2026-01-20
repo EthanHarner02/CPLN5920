@@ -15,6 +15,8 @@ Advanced spatial analysis and data science for urban planning and public policy.
 - **Final Project:** Capstone modeling challenge
 
 ## About Me
+Before coming to graduate school, I studied human geography at West Virginia University where I focused my coursework on development studies, political ecology, and economics. While in undergrad, I worked for Enterprise Community Partners, where I interned on their advisory team and developed my passion for affordable housing and economic development.
+
 I'm taking this course in order to develop my skills as a quantitative policy analyst. I am interested in housing policy and development, and hope to apply the skills I learn in this course to answering questions surrounidng housing affordability and equity.
 
 ## Contact

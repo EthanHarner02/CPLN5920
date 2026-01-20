@@ -4,7 +4,7 @@ title: "MUSA 5080 Portfolio"
 
 # Welcome to My Portfolio
 
-This portfolio documents my learning journey in Public Policy Analytics (MUSA 5080).
+This portfolio documents my learning journey in Public Policy Analytics (CPLN 5920).
 
 ## About This Course
 Advanced spatial analysis and data science for urban planning and public policy.
@@ -15,8 +15,8 @@ Advanced spatial analysis and data science for urban planning and public policy.
 - **Final Project:** Capstone modeling challenge
 
 ## About Me
-[Students will customize this section]
+I'm taking this course in order to develop my skills as a quantitative policy analyst. I am interested in housing policy and development, and hope to apply the skills I learn in this course to answering questions surrounidng housing affordability and equity.
 
 ## Contact
-- Email: [your.email@upenn.edu]
-- GitHub: [@your-username]
+- Email: [harner1@design.upenn.edu]
+- GitHub: [@EthanHarner02]

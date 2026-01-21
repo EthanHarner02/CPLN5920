@@ -12,8 +12,8 @@ navbar:
       menu:
       - href: labs/lab_0/lab0_1.20.26.qmd
         text: "Lab 0: dplyr Basics"
-      - href: weekly-notes/
-        text: Weekly Notes
+    # - text: Weekly Notes
+    #   menu:
 
 format:
   html:

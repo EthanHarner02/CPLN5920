@@ -53,7 +53,13 @@ If there is a special character like a colon, you need use double quote mark so 
 ```{r setup}
 # Load required packages (hint: you need tidycensus, tidyverse, and knitr)
 
+library(tidycensus)
+library(tidyverse)
+library(knitr)
+
 # Set your Census API key
+
+census_api_key("459aac3635030875e83d67456e41ee620321ed9e", install = TRUE)
 
 # Choose your state for analysis - assign it to a variable called my_state
 ```

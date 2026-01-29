@@ -1,0 +1,544 @@
+---
+title: "Lab 1: Census Data Quality for Policy Decisions"
+subtitle: "Evaluating Data Reliability for Algorithmic Decision-Making"
+author: "Your Name Here"
+date: today
+format: 
+  html:
+    code-fold: false
+    toc: true
+    toc-location: left
+    theme: cosmo
+execute:
+  warning: false
+  message: false
+---
+
+# Assignment Overview
+
+## Scenario
+
+You are a data analyst for the **[Your State] Department of Human Services**. The department is considering implementing an algorithmic system to identify communities that should receive priority for social service funding and outreach programs. Your supervisor has asked you to evaluate the quality and reliability of available census data to inform this decision.
+
+Drawing on our Week 2 discussion of algorithmic bias, you need to assess not just what the data shows, but how reliable it is and what communities might be affected by data quality issues.
+
+## Learning Objectives
+
+- Apply dplyr functions to real census data for policy analysis
+- Evaluate data quality using margins of error 
+- Connect technical analysis to algorithmic decision-making
+- Identify potential equity implications of data reliability issues
+- Create professional documentation for policy stakeholders
+
+## Submission Instructions
+
+**Submit by posting your updated portfolio link on Canvas.** Your assignment should be accessible at `your-portfolio-url/labs/lab_1/`
+
+Make sure to update your `_quarto.yml` navigation to include this assignment under an "Labs" menu.
+
+# Part 1: Portfolio Integration
+
+Create this assignment in your portfolio repository under an `labs/lab_1/` folder structure. Update your navigation menu to include:
+
+```
+- text: Assignments
+  menu:
+    - href: labs/lab_1/your_file_name.qmd
+      text: "Lab 1: Census Data Exploration"
+```
+If there is a special character like a colon, you need use double quote mark so that the quarto can identify this as text
+
+# Setup
+
+```{r setup}
+# Load required packages (hint: you need tidycensus, tidyverse, and knitr)
+
+library(tidycensus)
+library(tidyverse)
+library(knitr)
+
+# Set your Census API key
+
+#census_api_key("459aac3635030875e83d67456e41ee620321ed9e", install = TRUE)
+
+# Choose your state for analysis - assign it to a variable called my_state
+
+my_state <- c("West Virginia")
+```
+
+**State Selection:** I have chosen **[Your State Name]** for this analysis because: [Brief explanation of why you chose this state]
+
+# Part 2: County-Level Resource Assessment
+
+## 2.1 Data Retrieval
+
+**Your Task:** Use `get_acs()` to retrieve county-level data for your chosen state.
+
+**Requirements:**
+- Geography: county level
+- Variables: median household income (B19013_001) and total population (B01003_001)  
+- Year: 2022
+- Survey: acs5
+- Output format: wide
+
+**Hint:** Remember to give your variables descriptive names using the `variables = c(name = "code")` syntax.
+
+```{r county-data}
+# Write your get_acs() code here
+data <- get_acs(
+  geography = "county",
+  variables = c(
+    median_hh_income = "B19013_001", 
+    total_population = "B01003_001"),
+  state = "WV",
+  year = 2022,
+  output = "wide",
+  survey = "acs5"
+)
+# Clean the county names to remove state name and "County" 
+
+data_working <- data %>%
+  mutate(new_name = str_remove(NAME, " County, West Virginia")) %>%
+  select(!NAME)
+
+# Hint: use mutate() with str_remove()
+
+# Display the first few rows
+
+head(data_working)
+
+```
+
+## 2.2 Data Quality Assessment
+
+**Your Task:** Calculate margin of error percentages and create reliability categories.
+
+**Requirements:**
+- Calculate MOE percentage: (margin of error / estimate) * 100
+- Create reliability categories:
+  - High Confidence: MOE < 5%
+  - Moderate Confidence: MOE 5-10%  
+  - Low Confidence: MOE > 10%
+- Create a flag for unreliable estimates (MOE > 10%)
+
+**Hint:** Use `mutate()` with `case_when()` for the categories.
+
+```{r income-reliability}
+# Calculate MOE percentage and reliability categories using mutate()
+
+data_working <- data_working %>%
+  mutate(POP_MOE_Per = (total_populationM/total_populationE)*100,
+         INC_MOE_Per = (median_hh_incomeM/median_hh_incomeE)*100,
+         POP_reliability = case_when(
+           POP_MOE_Per < 5 ~ "High Confidence",
+           POP_MOE_Per > 10 ~ "Low Confidence",
+           .default = "Moderate Confidence"),
+        INC_reliability = case_when(
+           INC_MOE_Per < 5 ~ "High Confidence",
+           INC_MOE_Per > 10 ~ "Low Confidence",
+           .default = "Moderate Confidence")
+)
+
+
+# Create a summary showing count of counties in each reliability category
+
+POP_reliability_county <- data_working %>%
+  group_by(POP_reliability) %>%
+  count()
+
+POP_reliability_county
+
+INC_reliability_county <- data_working %>%
+  group_by(INC_reliability) %>%
+  count()
+
+INC_reliability_county
+
+# Hint: use count() and mutate() to add percentages
+```
+
+## 2.3 High Uncertainty Counties
+
+**Your Task:** Identify the 5 counties with the highest MOE percentages.
+
+**Requirements:**
+- Sort by MOE percentage (highest first)
+- Select the top 5 counties
+- Display: county name, median income, margin of error, MOE percentage, reliability category
+- Format as a professional table using `kable()`
+
+**Hint:** Use `arrange()`, `slice()`, and `select()` functions.
+
+```{r high-uncertainty}
+# Create table of top 5 counties by MOE percentage
+Highest_Inc_MOE_counties <- data_working %>%
+  arrange(desc(INC_MOE_Per)) %>%
+  slice(1:5) %>%
+  select(new_name, median_hh_incomeE, median_hh_incomeM, INC_MOE_Per, INC_reliability)
+
+# Format as table with kable() - include appropriate column names and caption
+kable(Highest_Inc_MOE_counties,
+      col.names = c("County", "Median Household Income", "Margin of Error", "Percentage Margin of Error", "Reliability Category"),
+      caption = "Five Highest Margin of Errors for Income Estimates Among West Virginia Counties"
+      )
+
+
+```
+
+**Data Quality Commentary:**
+
+[Write 2-3 sentences explaining what these results mean for algorithmic decision-making. Consider: Which counties might be poorly served by algorithms that rely on this income data? What factors might contribute to higher uncertainty?]
+
+Data that have a high margin of error are less reliable, as the true value of the data is more variable. This can be especially problematic when considering algorithmic decision-making, as a county which seemingly has a high income may be de-prioritized for funding compared to one with a lower income. However, this comparison may not be true if the margin of error for the high-income county is large enough to include the possibility that the average income is in fact lower than the other geography. Looking at the West Virginia dataset, the margin of error for Pendelton County is +/- 16.8%. This means that we cannot confidently say that it has a lower median income than Doddridge, as Doddridge's median income falls within Pendelton's MOE.
+
+# Part 3: Neighborhood-Level Analysis
+
+## 3.1 Focus Area Selection
+
+**Your Task:** Select 2-3 counties from your reliability analysis for detailed tract-level study.
+
+**Strategy:** Choose counties that represent different reliability levels (e.g., 1 high confidence, 1 moderate, 1 low confidence) to compare how data quality varies.
+
+```{r select-counties}
+# Use filter() to select 2-3 counties from your county_reliability data
+# Store the selected counties in a variable called selected_counties
+
+selected_counties <- data_working %>% 
+  filter(new_name %in% c("Jefferson", "Kanawha", "Lewis"))
+
+# Display the selected counties with their key characteristics
+# Show: county name, median income, MOE percentage, reliability category
+
+selected_counties <- selected_counties %>%
+  select(new_name, median_hh_incomeE, INC_MOE_Per, INC_reliability)
+
+kable(selected_counties,
+      col.names = c("County", "Median Household Income,", "Margin of Error", "Reliability Category"),
+      caption = "Selected Counties and Associated Median Household Incomes")
+```
+
+**Comment on the output:** [write something :)]
+
+Based on my knowledge of the state, I imagine that the MOE is greatly impacted by the total county population. The margin of error corresponds to the population rank of each county, with the lowest margin of error corresponding to the most populous county. 
+
+## 3.2 Tract-Level Demographics
+
+**Your Task:** Get demographic data for census tracts in your selected counties.
+
+**Requirements:**
+- Geography: tract level
+- Variables: white alone (B03002_003), Black/African American (B03002_004), Hispanic/Latino (B03002_012), total population (B03002_001)
+- Use the same state and year as before
+- Output format: wide
+- **Challenge:** You'll need county codes, not names. Look at the GEOID patterns in your county data for hints.
+
+```{r tract-demographics}
+# Define your race/ethnicity variables with descriptive names
+
+# Use get_acs() to retrieve tract-level data
+# Hint: You may need to specify county codes in the county parameter
+
+# Calculate percentage of each group using mutate()
+# Create percentages for white, Black, and Hispanic populations
+
+# Add readable tract and county name columns using str_extract() or similar
+
+tract_analysis <- get_acs(
+  geography = "tract",
+  variables = c(
+    White_Alone = "B03002_003", 
+    Black_African_American = "B03002_004",
+    Hispanic_Latino = "B03002_012",
+    Total_Population = "B03002_001"
+  ),
+  state = "54",
+  county = c(
+    "037", 
+    "039", 
+    "041"
+  ),
+  year = 2023,
+  output = "wide"
+)
+
+tract_analysis <- tract_analysis %>%
+  mutate(census_tract = str_extract(NAME, "^[^;]+"),
+        county = str_extract(NAME, "(?<=;).*")
+        )
+
+tract_analysis <- tract_analysis %>%
+  select(!"NAME")
+
+tract_analysis <- tract_analysis %>%
+  mutate(
+  county = str_remove(county, "County; West Virginia"),
+  census_tract = str_remove(census_tract, "Census Tract ")
+  )
+
+tract_analysis <- tract_analysis %>%
+  mutate(county = str_remove(county, " County"))
+
+tract_analysis <- tract_analysis %>%
+  mutate(Per_White = White_AloneE / Total_PopulationE,
+         Per_Black = Black_African_AmericanE / Total_PopulationE,
+         Per_Hispanic = Hispanic_LatinoE / Total_PopulationE)
+```
+
+## 3.3 Demographic Analysis
+
+**Your Task:** Analyze the demographic patterns in your selected areas.
+
+```{r demographic-analysis}
+# Find the tract with the highest percentage of Hispanic/Latino residents
+# Hint: use arrange() and slice() to get the top tract
+
+highest_hispanic <- tract_analysis %>%
+  arrange(desc(Per_Hispanic)) %>%
+  slice(1:5)
+
+# Calculate average demographics by county using group_by() and summarize()
+
+county_demographics <- tract_analysis %>%
+  group_by(county) %>%
+  summarize(
+    Per_Black = sum(Black_African_AmericanE)/sum(Total_PopulationE),
+    Per_White = sum(White_AloneE)/sum(Total_PopulationE),
+    Per_Hispanic = sum(Hispanic_LatinoE)/sum(Total_PopulationE)
+  )
+
+# Show: number of tracts, average percentage for each racial/ethnic group
+
+table <- tract_analysis %>%
+group_by(county) %>%
+  summarize(
+    Per_Black = sum(Black_African_AmericanE)/sum(Total_PopulationE),
+    Per_White = sum(White_AloneE)/sum(Total_PopulationE),
+    Per_Hispanic = sum(White_AloneE)/sum(Total_PopulationE),
+    Tracts = n()
+  )
+
+
+# Create a nicely formatted table of your results using kable()
+
+kable(table,
+      col.names = c("County", "Percent Black", "Percent White", "Percent Hispanic", "Number of Census Tracts"),
+      caption = "Demographic Information at County Level, West Virginia")
+```
+
+# Part 4: Comprehensive Data Quality Evaluation
+
+## 4.1 MOE Analysis for Demographic Variables
+
+**Your Task:** Examine margins of error for demographic variables to see if some communities have less reliable data.
+
+**Requirements:**
+- Calculate MOE percentages for each demographic variable
+- Flag tracts where any demographic variable has MOE > 15%
+- Create summary statistics
+
+```{r demographic-moe}
+# Calculate MOE percentages for white, Black, and Hispanic variables
+# Hint: use the same formula as before (margin/estimate * 100)
+
+MOE_analysis <- tract_analysis %>%
+  mutate(WhiteMOE = (White_AloneM/White_AloneE)*100,
+         BlackMOE = (Black_African_AmericanM/Black_African_AmericanE)*100,
+         HispanicMOE = (Hispanic_LatinoM/Hispanic_LatinoE)*100
+  )
+
+
+# Create a flag for tracts with high MOE on any demographic variable
+# Use logical operators (| for OR) in an ifelse() statement
+
+MOE_analysis <- MOE_analysis %>%
+  mutate(Quality = case_when(
+    WhiteMOE > 20 | BlackMOE > 10 | HispanicMOE >10 ~ "Very Low Quality",
+    WhiteMOE < 10 | BlackMOE < 10 | HispanicMOE < 10 ~ "Fine",
+    .default = "Low Quality"
+  ))
+
+# Create summary statistics showing how many tracts have data quality issues
+
+MOE_analysis %>% count(Quality)
+```
+
+## 4.2 Pattern Analysis
+
+**Your Task:** Investigate whether data quality problems are randomly distributed or concentrated in certain types of communities.
+
+```{r pattern-analysis}
+# Group tracts by whether they have high MOE issues
+# Calculate average characteristics for each group:
+# - population size, demographic percentages
+# Use group_by() and summarize() to create this comparison
+# Create a professional table showing the patterns
+
+MOE_Table <- MOE_analysis %>%
+  group_by(Quality) %>%
+  summarize(average_population = mean(Total_PopulationE),
+             Per_Black = sum(Black_African_AmericanE)/sum(Total_PopulationE),
+              Per_White = sum(White_AloneE)/sum(Total_PopulationE),
+                Per_Hispanic = sum(Hispanic_LatinoE)/sum(Total_PopulationE))
+
+kable(MOE_Table, 
+      col.names = c("Quality Category", "Average Population", "Percent Black", "Percent White", "Percent Hispanic"), 
+      caption= "Demographic Characteristics of Data Quality")
+```
+
+**Pattern Analysis:** [Describe any patterns you observe. Do certain types of communities have less reliable data? What might explain this?]
+
+Unfortunately, the data in my selected counties in West Virginia do not have sufficient reliability to make confident use them. This makes sense however, as the average census tract population for the counties I am using is only approx. 3,200 people. Furthermore, these tracts are very racially homogenous, meaning that all tracts have one minority group that is small enough as to create very low confidence data and flag the entire tract as unreliable. 
+
+# Part 5: Policy Recommendations
+
+## 5.1 Analysis Integration and Professional Summary
+
+**Your Task:** Write an executive summary that integrates findings from all four analyses.
+
+**Executive Summary Requirements:**
+1. **Overall Pattern Identification**: What are the systematic patterns across all your analyses?
+2. **Equity Assessment**: Which communities face the greatest risk of algorithmic bias based on your findings?
+3. **Root Cause Analysis**: What underlying factors drive both data quality issues and bias risk?
+4. **Strategic Recommendations**: What should the Department implement to address these systematic issues?
+
+**Executive Summary:**
+
+  The systematic patterns across all of my analysis reveals that ACS-5 year data are not suitable for confidently assessing racial composition in the three selected counties in West Virginia. Given that the most populous county in West Virginia was included in my sample for census tract-analysis, as well as the county with the highest proportion of Hispanic/Latino residents, it can be assumed that census tracts in the rest of the state have a significant margin of error due to low sample sizes. Median income data is slightly higher quality, with certain counties suitable for immediate algorithmic usage. However, once more, county population significantly impacts data quality, with many rural, low-population counties experiencing significantly lower data confidence. 
+  
+  Minority and rural communities face the most significant risk of algorithmic bias in ACS 5-year estimates. In the census-tract data, the MOE that flagged as low-confidence were consistently found in minority communities. Thus, these communities are at risk of being over or under-counted, and thus being mis-represented in decision making that stems from public data analysis such as funding, representation, etc. Rural communities are at risk of having their incomes miscalculated, as certain counties' margin of errors were within the range of each other's estimated value. This means that ranking counties on median income is ineffective, and thus decisions stemming from a ranked approach to resource allocation may under or over-provision resources to counties with low-confidence data.
+  
+  Population size appears to produce low-margins of error. This is likely due to the low sample size of ACS survey respondents associated with rural and low-population communities. This is especially true for minority communities living in ethnically homogeneous low-population regions, as the sample size of minority residents in this community has the potential to be extremely small. Indeed, if the ACS surveys 3% of the US population, in communities where minority groups comprise less than 3% of the total population (such as in sampled WV census tracts), surveyors risk not surveying Hispanic residents of that county. 
+  
+  The department should improve bias and errors in its data analysis by flagging counties that are at-risk of algorithmic bias, and supplementing ACS 5-year data with 10 year decennial census data, as 10 year data does not have a margin of error. This protocol should be expanded to require all analysis involving racial composition data to rely on the decennial census, as in West Virginia, there were no counties that had high-confidence racial data profiles. These protocols will mitigate under or overcounting minority populations, and provide more accurate comparisons of income across counties.
+
+## 6.3 Specific Recommendations
+
+**Your Task:** Create a decision framework for algorithm implementation.
+
+```{r recommendations-data}
+# Create a summary table using your county reliability data
+# Include: county name, median income, MOE percentage, reliability category
+
+# Add a new column with algorithm recommendations using case_when():
+# - High Confidence: "Safe for algorithmic decisions"
+# - Moderate Confidence: "Use with caution - monitor outcomes"  
+# - Low Confidence: "Requires manual review or additional data"
+
+# Format as a professional table with kable()
+
+County_Reliability_Table <- data_working %>%
+  mutate(Algorithm_Rec = case_when(
+    INC_reliability == "High Confidence" ~ "Safe for algorithmic decisions",
+    INC_reliability == "Moderate Confidence" ~ "Use with caution - monitor outcomes",
+    INC_reliability == "Low Confidence" ~ "Requires manual review or additional data")
+  )
+
+County_Reliability_Table <- County_Reliability_Table %>%
+  select(new_name, median_hh_incomeE, INC_MOE_Per, INC_reliability, Algorithm_Rec)
+
+kable(County_Reliability_Table,
+      col.names = c("County Name", "Median Household Income", "Margin of Error", "Reliability", "Algorithmic Recommendation"),
+      caption = "Data Reliability and Recommendations for West Virginia County Median Income Data")
+```
+
+**Key Recommendations:**
+
+**Your Task:** Use your analysis results to provide specific guidance to the department.
+
+1. **Counties suitable for immediate algorithmic implementation:** 
+
+Berkely, Harrison, Kanawha, Marion, Monongalia, and Wood counties all have margins of error below 5%, indicating that they can be used for immediate implementation.
+
+2. **Counties requiring additional oversight:** [List counties with moderate confidence data and describe what kind of monitoring would be needed]
+
+The following counties require additional oversight including monitoring of data outcomes to ensure that moderate data quality is not negatively impacting rural populations. These counties have margins of error between 5 and 10%. 
+
+  - Barbour
+  - Boone
+  - Braxton
+  - Cabell
+  - Greenbrier
+  - Hancock
+  - Jefferson
+  - Mercer
+  - Mineral
+  - Monroe
+  - Morgan
+  - Ohio
+  - Preston
+  - Putnam
+  - Raleigh
+  - Randolph
+  - Ritchie
+  - Roane
+  - Tucker
+  - Upshur
+  - Wayne
+  - Wetzel
+
+3. **Counties needing alternative approaches:** [List counties with low confidence data and suggest specific alternatives - manual review, additional surveys, etc.]
+
+The following counties need further review due to having margins of error exceeding 10%. Additonal data sources should be used such as the decennial census alongside continued monitoring for bias in recommendations. 
+
+  - Brooke
+  - Calhoun
+  - Clay
+  - Doddridge
+  - Gilmer
+  - Grant
+  - Hampshire
+  - Jackson
+  - Lewis
+  - Lincoln
+  - Logan
+  - McDowell
+  - Marshall
+  - Mason
+  - Mingo
+  - Nicholas
+  - Pendleton
+  - Pleasants
+  - Pocahontas
+  - Summers
+  - Taylor
+  - Tyler
+  - Wayne
+  - Wirt
+  - Wyoming
+
+## Questions for Further Investigation
+
+[List 2-3 questions that your analysis raised that you'd like to explore further in future assignments. Consider questions about spatial patterns, time trends, or other demographic factors.]
+
+# Technical Notes
+
+**Data Sources:** 
+- U.S. Census Bureau, American Community Survey 2018-2022 5-Year Estimates
+- Retrieved via tidycensus R package on [date]
+
+**Reproducibility:** 
+- All analysis conducted in R version [your version]
+- Census API key required for replication
+- Complete code and documentation available at: [your portfolio URL]
+
+**Methodology Notes:**
+- In determining the class of reliability in census tract- racial data, I developed a new category, Very Low Reliability, with MOEs over 20%. The other categories were defined in accordance with county-level analysis. 
+
+**Limitations:**
+- Data limited to ACS survey. Did not check for correlation between population or racial demographics and margin of error.
+
+---
+
+## Submission Checklist
+
+Before submitting your portfolio link on Canvas:
+
+- [ ] All code chunks run without errors
+- [ ] All "[Fill this in]" prompts have been completed
+- [ ] Tables are properly formatted and readable
+- [ ] Executive summary addresses all four required components
+- [ ] Portfolio navigation includes this assignment
+- [ ] Census API key is properly set 
+- [ ] Document renders correctly to HTML
+
+**Remember:** Submit your portfolio URL on Canvas, not the file itself. Your assignment should be accessible at `your-portfolio-url/labs/lab_1/your_file_name.html`

@@ -649,5 +649,82 @@
     "title": "Technical Appendix",
     "section": "Neighborhoods as a Fixed Effect",
     "text": "Neighborhoods as a Fixed Effect\nThe below code was completed earlier in our anaylsis, but is below in commented form to reference previous work\n\n\nShow Code\n#hoods &lt;- st_read(here(\"labs/lab_3/data/philadelphia-neighborhoods.geojson\"))\n\n#hoods &lt;- hoods %&gt;%\n  #st_transform(st_crs(Philly_data_working)) \n\n#philly_data_working_hoods &lt;- Philly_data_working %&gt;%\n  #st_join(hoods)\n\n#philly_data_working_hoods &lt;- philly_data_working_hoods %&gt;%\n # select(-LISTNAME, -MAPNAME) %&gt;%\n  #group_by(NAME) %&gt;%\n  #filter(!is.na(NAME)) %&gt;% #removing the sale that didn't have a corresponding neighborhood\n  #summarize(median_hood_price = median(sale_price)) \n\n#philly_data_working_hoods &lt;- Philly_data_working %&gt;%\n  #st_join(philly_data_working_hoods)\n\n#philly_data_working_hoods &lt;- philly_data_working_hoods %&gt;%\n  #filter(!is.na(NAME))\n\n#philly_data_working_hoods &lt;- philly_data_working_hoods %&gt;%\n #mutate(percent_rank_home_value = percent_rank(median_hood_price))\n\n#philly_data_working_hoods &lt;- philly_data_working_hoods %&gt;%\n  #mutate(\n    #neighborhood_category = case_when(\n      #percent_rank_home_value &gt; 0.90 ~ \"super high value\",\n      #percent_rank_home_value &gt; 0.75 ~ \"high value\",\n     # percent_rank_home_value &gt; 0.50 ~ \"upper-mid value\",\n     # percent_rank_home_value &gt; 0.25 ~ \"lower-mid value\",\n      #TRUE ~ \"low value\"\n    #)\n # ) #Note the way that we categorized neighborhoods. Note that we could add another \"ultra-high\" category. \n\n\nIn order to understand the effects that neighborhood has on home values, we gathered neighborhood data, and then grouped neighborhoods into various value groupings.\nWe used geometry provided by OpenDataPhilly to sort the city into neighborhoods. These shapes were compiled with feedback from residents and the Philadelphia Inquirer. After simple cleaning, we then examined the average sale price by neighborhood and divided each neighborhood into corresponding percentile ranks. We ultimately created five categories, defined as quartiles until the 90th percentile, at which we created a “super-high value” neighborhood category. This is because median home values do not follow a normal distribution, but rather have a long right tail in very high value neighborhoods. This method seeks to capture the effect of these neighborhoods independently.\n##Proximity to Transit\nIn our initial hypothesis, we believed that close proximity to transit will increase home values. This is because proximity to rail transit provides easy access to employment opportunities and other amenities in Center City. We also hypothesized that regional rail would have similar effects, but chose to include it as another variable. We did not include regional rail as a form of rapid transit, because it serves a different demographic than transit does (suburban commuters), and has different service frequencies.\nWe defined transit as subway, elevated, and trolley service. Regional rail is defined as stations in SEPTA’s regional rail network. Both datasets came form OpenData Philly and required basic cleaning to select for desired lines.\nCounter-intuitively, we found that proximity to transit decreased home values, not increased. This is likely because of real or perceived dis-amenities associated with transit in Philadelphia including crime and uncleanliness. Furthermore, homes that are a far distance from transit may be more likely to be in high value suburban neighborhoods in the Northwest of the City, making raw distance to transit an unreliable predictor of home values city-wide.\n\n\nShow Code\nphilly_data_working_hoods %&gt;%\n  mutate(dist_to_transit = as.numeric(dist_to_transit)) %&gt;%\n  ggplot(aes(x = dist_to_transit, y = log(sale_price))) +\n  geom_point(alpha = 0.4) +\n  geom_smooth(method = \"lm\") +\n  theme_minimal() +\n  labs(\n    x = \"Distance to Transit (feet)\",\n    y = \"Log Sale Price\"\n  )\n\n\n\n\n\n\n\n\n\nLooking at regional rail however, we see the opposite effect, as proximity to regional rail has a positive effect on Sale Price. While this may be because regional rail does not have the same stigmas associated with it, it may also be because regional rail disproportionately goes through higher-income suburban neighborhoods. Therefore, we decided that like transit, regional rail proximity wasn’t a reliable predictor.\n\n\nShow Code\nphilly_data_working_hoods %&gt;%\n  mutate(dist_to_RR = as.numeric(dist_to_RR)) %&gt;%\n  ggplot(aes(x = dist_to_RR, y = log(sale_price))) +\n  geom_point(alpha = 0.4) +\n  geom_smooth(method = \"lm\") +\n  theme_minimal() +\n  labs(\n    x = \"Distance to Regional Rail (feet)\",\n    y = \"Log Sale Price\"\n  )\n\n\n\n\n\n\n\n\n\nTo correct for these two factors, we created a dummy variable which notes close proximity (defined as half a mile - approximately a comfortable distance to walk in the morning / afternoon) to transit. This way, we can see the effect that close proximity to regional rail or transit has on home values compared to homes where transit commuting is less realistic.\n\n\nShow Code\n#Looking at transit proximity in a model\n\ntransit_adjacency &lt;- lm(sale_price ~ as.factor(close_proximity_to_transit) + as.factor(close_proximity_to_RR), data = philly_data_working_hoods)\n\nprint(transit_adjacency)\n\n\n\nCall:\nlm(formula = sale_price ~ as.factor(close_proximity_to_transit) + \n    as.factor(close_proximity_to_RR), data = philly_data_working_hoods)\n\nCoefficients:\n                           (Intercept)  as.factor(close_proximity_to_transit)1  \n                                383350                                  -38714  \n     as.factor(close_proximity_to_RR)1  \n                                -45062  \n\n\nShow Code\n#Might be interesting to see how transit impacts values at different scales - e.g. looking how it impacts Fishtown vs. N. Philly\n\n\nNotably, transit adjacency and regional rail proximity decrease home values, with transit decreasing home values by approximately 39,000 dollars and proximity to regional rail decreasing home values by 46,000 dollars on average."
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#motivation-research-question",
+    "href": "labs/lab_3/MidTermPresentation.html#motivation-research-question",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Motivation & Research Question",
+    "text": "Motivation & Research Question\nMotivation\nThe City of Philadelphia is seeking to improve its Automated Valuation Model (AVM) for property tax assessments. A good AVM is important to ensure fair taxation based on current market values.\nResearch Question\nWhich structural characteristics, spatial features, and fixed effects best predict property sale prices in Philadelphia?"
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#data-sources",
+    "href": "labs/lab_3/MidTermPresentation.html#data-sources",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Data Sources",
+    "text": "Data Sources\n\nPhiladelphia property sales, 2024–2025\nCensus ACS 2024 5-Year Estimates\n\nincome\neducational attainment\nracial and ethnic composition\npopulation density\n\nOpenDataPhilly\n\nparks\nSEPTA and Regional Rail access\nviolent crime\nvacant buildings\nneighborhood boundaries"
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#spatial-pattern-of-sale-prices",
+    "href": "labs/lab_3/MidTermPresentation.html#spatial-pattern-of-sale-prices",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Spatial Pattern of Sale Prices",
+    "text": "Spatial Pattern of Sale Prices\n\n\nResidential sale prices across the city\n{width=“85%”}\n\nNeighborhood value categories\n{width=“85%”}"
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#what-drives-prices",
+    "href": "labs/lab_3/MidTermPresentation.html#what-drives-prices",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "What Drives Prices?",
+    "text": "What Drives Prices?"
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#model-building",
+    "href": "labs/lab_3/MidTermPresentation.html#model-building",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Model Building",
+    "text": "Model Building\nWe built four models in sequence\n\nModel 1: Structural housing features only\nModel 2: Structural features + census tract characteristics\nModel 3: Structural + census + spatial accessibility and neighborhood conditions\nModel 4: Full model with fixed effects and interaction terms"
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#model-performance-final-model-fixed-effects-performed-the-best",
+    "href": "labs/lab_3/MidTermPresentation.html#model-performance-final-model-fixed-effects-performed-the-best",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Model Performance: Final Model (Fixed Effects) Performed the Best",
+    "text": "Model Performance: Final Model (Fixed Effects) Performed the Best\nPerformance improved as we added neighborhood and spatial information\n\nThe structural-only model provides a baseline, but adding neighborhood census data and spatial variables improves performance. The best-performing model is the full model with fixed effects and interactions, suggesting that local context matters a great deal for predicting sale prices."
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#final-model-actual-vs.-predicted-prices",
+    "href": "labs/lab_3/MidTermPresentation.html#final-model-actual-vs.-predicted-prices",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Final Model: Actual vs. Predicted Prices",
+    "text": "Final Model: Actual vs. Predicted Prices\n\nThe final model captures the broad geography of Philadelphia’s housing market fairly well. It reproduces the major high-value and low-value submarkets, even though some local prediction error remains."
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#what-mattered-most",
+    "href": "labs/lab_3/MidTermPresentation.html#what-mattered-most",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "What Mattered Most",
+    "text": "What Mattered Most\nStrong predictors in the final model\n\nTotal livable area\nNearby sale prices\nNeighborhood category / neighborhood fixed effects\nDistance to downtown\nNeighborhood vacancy\nViolent crime\nBathrooms and garage spaces\n\nStructural characteristics matter, but they are not enough on their own. The strongest model is the one that combines housing features with neighborhood and spatial context."
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#where-the-model-struggles",
+    "href": "labs/lab_3/MidTermPresentation.html#where-the-model-struggles",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Where the Model Struggles",
+    "text": "Where the Model Struggles\n\nunusual or luxury properties\nrapidly changing neighborhoods\nhomes with limited quality information in administrative data\natypical sales that may not reflect normal market behavior\n\nThese are cases where price may depend on factors not fully observed in the data, such as renovations, block-level dynamics, investor demand, or non-standard transactions."
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#recommendations",
+    "href": "labs/lab_3/MidTermPresentation.html#recommendations",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Recommendations",
+    "text": "Recommendations\nFor a better AVM in Philadelphia\n\nincorporate neighborhood fixed effects\ninclude spatial measures like downtown access, vacancy, and crime\nuse recent nearby sales to reflect local market conditions\nflag unusual properties for manual review"
+  },
+  {
+    "objectID": "labs/lab_3/MidTermPresentation.html#limitations-next-steps",
+    "href": "labs/lab_3/MidTermPresentation.html#limitations-next-steps",
+    "title": "Predicting Home Prices in Philadelphia",
+    "section": "Limitations & Next Steps",
+    "text": "Limitations & Next Steps\nLimitations\n\nadministrative data do not fully capture housing quality\nsome neighborhood measures are only available at the tract level\nthe model may miss very local block-by-block market variation\nresults are based on recent sales only\n\nNext steps\n\ntest nonlinear machine learning approaches\nadd richer measures of condition and renovation quality\nexplore finer-grained spatial effects\ncompare results directly to the current City AVM"
   }
 ]

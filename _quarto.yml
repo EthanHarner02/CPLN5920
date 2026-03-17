@@ -17,7 +17,9 @@ website:
         - href: labs/lab_2/lab2_Feb_15.qmd
           text: "Lab 2: Spatial Analysis and Visualization"
         - href: labs/lab_3/TechAppendix.qmd
-          text: "Mid-Term Housing Price Model Technical Appendix"  
+          text: "Mid-Term Housing Price Model Technical Appendix"
+        - href: labs/lab_3/MidTermPresentation.qmd
+          text: "Mid-Term Housing Price Model Presentation"
       # - text: Weekly Notes
       #   menu:
 

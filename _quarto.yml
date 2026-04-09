@@ -19,7 +19,11 @@ website:
         - href: labs/lab_3/TechAppendix.qmd
           text: "Mid-Term Housing Price Model Technical Appendix"
         - href: labs/lab_3/MidTermPresentation.qmd
-          text: "Mid-Term Housing Price Model Presentation"
+          text: "Mid-Term Housing Price Model Presentation"       
+        - href: labs/lab_4/lab_4.qmd
+          text: "Lab 4: Spatial Predictive Analysis"
+          
+          
       # - text: Weekly Notes
       #   menu:
 

@@ -22,8 +22,8 @@ website:
           text: "Mid-Term Housing Price Model Presentation"       
         - href: labs/lab_4/lab_4.qmd
           text: "Lab 4: Spatial Predictive Analysis"
-          
-          
+        - href: labs/lab_5/week11_inclass_and_lab5.qmd
+          text: "Lab 5: Spatial-Temporal Predictions"
       # - text: Weekly Notes
       #   menu:
 
